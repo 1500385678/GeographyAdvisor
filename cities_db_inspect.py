@@ -91,11 +91,67 @@ def inspect(db_path: Path) -> dict:
             for f in fields
         }
 
-    # 7) Phase 0 目标差距
+    # 7) Phase 0 目标差距(精简版,仅城市数)
     report["phase0_target"] = {
         "目标城市数": 200,
         "实际城市 entity 数": report["city_count"],
         "差距": 200 - report["city_count"],
+    }
+
+    # 8) Phase 0 全目标差距矩阵(主计划 §5 六项,逐项评估)
+    #    各项阈值取自主计划 §5「Phase 0 资产盘点」原话,见 docstring
+    phase0_items = [
+        {
+            "id": "0.1",
+            "title": "写 cities_db_inspect.py(资产盘点脚本)",
+            "status": "done",
+            "actual": "cities_db_inspect.py 已交付,纯只读",
+            "target": "可盘点脚本",
+        },
+        {
+            "id": "0.2",
+            "title": "补全缺失字段(气候/方言/特产/非遗)",
+            "status": "in_progress" if report["city_count"] > 0 else "todo",
+            "actual": f"desc_short {report.get('field_coverage', {}).get('desc_short', '0/0')}",
+            "target": "5 字段全填(气候/方言/特产/非遗 + desc_short)",
+        },
+        {
+            "id": "0.3",
+            "title": "导入 88 城市档案(31 省会 + 重点旅游城市 + 铜陵等示例)",
+            "status": "in_progress" if report["city_count"] >= 1 else "todo",
+            "actual": f"{report['city_count']} city entity(当前:铜陵 340700 / 上海 310000 / 北京 110000)",
+            "target": "88 城市档案 + cities.db city entity ≥ 88",
+        },
+        {
+            "id": "0.4",
+            "title": "文化符号库初版(国家级非遗 1500+ + 老字号 100+)",
+            "status": "in_progress" if report["symbol_total"] >= 1 else "todo",
+            "actual": f"{report['symbol_total']} symbol(类别:{', '.join(k['kind'] for k in report['symbol_kind']) or '无'})",
+            "target": "国家级非遗 1500+ + 老字号 100+ + 方言专项",
+        },
+        {
+            "id": "0.5",
+            "title": "搭建 FastAPI 骨架 + /atlas /map 接口(只读查询)",
+            "status": "todo",
+            "actual": "项目根目录无 app.py / main.py / requirements.txt / 任何 FastAPI 文件",
+            "target": "FastAPI 启动 + /atlas /map 只读端点 + curl 自检通过",
+        },
+        {
+            "id": "0.6",
+            "title": "飞书 Bot 接入'城市速查 + 旅行建议'两条流水线",
+            "status": "todo",
+            "actual": "36-地理 agent cron(每日 03:50)可代答,但 bot 接入未配置",
+            "target": "feishu-channel.yaml + 城市速查 / 旅行建议 两个 intent 命中",
+        },
+    ]
+    # 总结行:已完成 / 进行中 / 待办 计数
+    summary = {"done": 0, "in_progress": 0, "todo": 0}
+    for it in phase0_items:
+        summary[it["status"]] = summary.get(it["status"], 0) + 1
+    report["phase0_matrix"] = {
+        "items": phase0_items,
+        "summary": summary,
+        "total": len(phase0_items),
     }
 
     con.close()
@@ -183,6 +239,25 @@ def render_md(r: dict) -> str:
     if t["差距"] > 0:
         lines.append("> → 下一阶段:Phase 0.2 批量入库 31 省会 + 重点旅游城市,优先补 **气候 / 方言 / 特产 / 非遗** 字段。")
     lines.append("")
+
+    # Phase 0 全目标差距矩阵(主计划 §5 六项)
+    if r.get("phase0_matrix"):
+        m = r["phase0_matrix"]
+        lines.append("## 七、Phase 0 全目标差距矩阵(主计划 §5)")
+        lines.append("")
+        lines.append(f"**汇总**:`done {m['summary']['done']} · in_progress {m['summary']['in_progress']} · todo {m['summary']['todo']}`(共 {m['total']} 项)")
+        lines.append("")
+        lines.append("| ID | 任务 | 状态 | 实际 | 目标 |")
+        lines.append("|---|---|---|---|---|")
+        status_emoji = {"done": "✅", "in_progress": "🟡", "todo": "⬜"}
+        for it in m["items"]:
+            lines.append(
+                f"| {it['id']} | {it['title']} | {status_emoji.get(it['status'], it['status'])} | {it['actual']} | {it['target']} |"
+            )
+        lines.append("")
+        lines.append("> 本段由 `cities_db_inspect.py` 自动生成,可贴入 `.Log/巡检-地理-YYYYMMDD.md` 与日报。")
+        lines.append("> 阈值取自主计划 §5「Phase 0 资产盘点」原文,微调请同步主计划 + 脚本常量。")
+        lines.append("")
     return "\n".join(lines)
 
 
