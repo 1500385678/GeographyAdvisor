@@ -154,6 +154,39 @@ def inspect(db_path: Path) -> dict:
         "total": len(phase0_items),
     }
 
+    # 8) T1 待拍板看板(2026-08-28 快照)
+    #    0824 首次发现 Schema 偏离,0825/0826/0827/0828 巡检反复提示,
+    #    0827 起草 Phase 0.2 决策表(A/B/C 三方案,推荐 A),0828 仍未拍板
+    #    T4 不能替 T1 拍板,但能"把 T1 拍板前的最后一眼备齐"
+    report["t1_pending"] = {
+        "snapshot_date": "2026-08-28",
+        "blocked_since": "2026-08-24",
+        "blocked_days": 5,
+        "items": [
+            {
+                "id": "B1",
+                "title": "Schema 偏离(主计划 §4.3 五表 vs 实际 entity 四表)",
+                "blocked_days": 5,
+                "material": "docs/Phase0_2_Schema_决策表.md",
+                "decision_impact": "决定 Phase 0.2 批量入库 SQL 模板",
+            },
+            {
+                "id": "B2",
+                "title": "Phase 0.2 批量入库启动(31 省会 + 重点旅游城市)",
+                "blocked_days": 5,
+                "material": "决策表 §五「方案 A 落地 checklist」",
+                "decision_impact": "决定 Phase 0.2 入库脚本启动日",
+            },
+            {
+                "id": "B3",
+                "title": "Web App 启动时点(Phase 0.5 / Phase 1)",
+                "blocked_days": 4,
+                "material": "Phase 0 矩阵(this 脚本 §七)",
+                "decision_impact": "决定 Phase 1 启动周次 + FastAPI 引入时点",
+            },
+        ],
+    }
+
     con.close()
     return report
 
@@ -257,6 +290,24 @@ def render_md(r: dict) -> str:
         lines.append("")
         lines.append("> 本段由 `cities_db_inspect.py` 自动生成,可贴入 `.Log/巡检-地理-YYYYMMDD.md` 与日报。")
         lines.append("> 阈值取自主计划 §5「Phase 0 资产盘点」原文,微调请同步主计划 + 脚本常量。")
+        lines.append("")
+
+    # T1 待拍板看板(0824→0828 持续 5+ 日阻塞 3 项,T4 备数据不替 T1 拍板)
+    if r.get("t1_pending"):
+        p = r["t1_pending"]
+        lines.append("## 八、T1 待拍板看板")
+        lines.append("")
+        lines.append(f"> **快照日期**:`{p['snapshot_date']}` · **阻塞起始**:`{p['blocked_since']}` · **持续**:`{p['blocked_days']}` 日")
+        lines.append("> T4 边界:备数据不替 T1 拍板 · 拍板后 T4 立即按决策表 §五 checklist 落地")
+        lines.append("")
+        lines.append("| ID | 阻塞项 | 持续日数 | 备齐材料 | 决策影响 |")
+        lines.append("|---|---|---|---|---|")
+        for it in p["items"]:
+            lines.append(
+                f"| {it['id']} | {it['title']} | {it['blocked_days']} | {it['material']} | {it['decision_impact']} |"
+            )
+        lines.append("")
+        lines.append("**T1 拍板路径建议**:先 B1(零数据迁移选项)→ 解 B2 → 决定 B3 启动周次。")
         lines.append("")
     return "\n".join(lines)
 
