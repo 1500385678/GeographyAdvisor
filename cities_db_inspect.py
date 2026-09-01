@@ -12,6 +12,12 @@ cities_db_inspect.py · GeographyAdvisor Phase 0.1 资产盘点脚本
   python3 cities_db_inspect.py --json                   # JSON 输出
 
 不做写操作。纯只读盘点。
+
+版本:
+  v1   20260824 — 只读盘点 + 6 段 Markdown 报告
+  v2   20260826 — 新增 §七 Phase 0 全目标差距矩阵(主计划 §5 六项)
+  v3   20260828 — 新增 §八 T1 待拍板看板(B1/B2/B3,0828 静态快照)
+  v3.1 20260901 — §八看板阻塞日数同步 + 新增 B4(0831 weekly 模式切换承诺未落地)
 """
 from __future__ import annotations
 import sqlite3
@@ -154,35 +160,43 @@ def inspect(db_path: Path) -> dict:
         "total": len(phase0_items),
     }
 
-    # 8) T1 待拍板看板(2026-08-28 快照)
-    #    0824 首次发现 Schema 偏离,0825/0826/0827/0828 巡检反复提示,
-    #    0827 起草 Phase 0.2 决策表(A/B/C 三方案,推荐 A),0828 仍未拍板
+    # 8) T1 待拍板看板(v3.1: 2026-09-01 快照,阻塞日数同步 + 新增 B4)
+    #    0824 首次发现 Schema 偏离,0825→0901 巡检反复提示(连续 9 日)
+    #    0827 起草 Phase 0.2 决策表(A/B/C 三方案,推荐 A)
+    #    0831 巡检第 4 项新增承诺"weekly 模式切换",0901 巡检确认未落地
     #    T4 不能替 T1 拍板,但能"把 T1 拍板前的最后一眼备齐"
     report["t1_pending"] = {
-        "snapshot_date": "2026-08-28",
+        "snapshot_date": "2026-09-01",
         "blocked_since": "2026-08-24",
-        "blocked_days": 5,
+        "blocked_days": 9,
         "items": [
             {
                 "id": "B1",
                 "title": "Schema 偏离(主计划 §4.3 五表 vs 实际 entity 四表)",
-                "blocked_days": 5,
+                "blocked_days": 9,
                 "material": "docs/Phase0_2_Schema_决策表.md",
                 "decision_impact": "决定 Phase 0.2 批量入库 SQL 模板",
             },
             {
                 "id": "B2",
                 "title": "Phase 0.2 批量入库启动(31 省会 + 重点旅游城市)",
-                "blocked_days": 5,
+                "blocked_days": 9,
                 "material": "决策表 §五「方案 A 落地 checklist」",
                 "decision_impact": "决定 Phase 0.2 入库脚本启动日",
             },
             {
                 "id": "B3",
                 "title": "Web App 启动时点(Phase 0.5 / Phase 1)",
-                "blocked_days": 4,
+                "blocked_days": 8,
                 "material": "Phase 0 矩阵(this 脚本 §七)",
                 "decision_impact": "决定 Phase 1 启动周次 + FastAPI 引入时点",
+            },
+            {
+                "id": "B4",
+                "title": "0831 承诺 weekly 巡检模式切换未落地(0902 前 cron 调整决策点)",
+                "blocked_days": 1,
+                "material": ".Log/巡检-地理-20260831.md §四 + mavis cron update",
+                "decision_impact": "决定 0902-0906 期间 36-地理 daily 巡检是否切 weekly(0907 周一启动)",
             },
         ],
     }
@@ -292,7 +306,7 @@ def render_md(r: dict) -> str:
         lines.append("> 阈值取自主计划 §5「Phase 0 资产盘点」原文,微调请同步主计划 + 脚本常量。")
         lines.append("")
 
-    # T1 待拍板看板(0824→0828 持续 5+ 日阻塞 3 项,T4 备数据不替 T1 拍板)
+    # T1 待拍板看板(0824→0901 持续 9 日阻塞 4 项,T4 备数据不替 T1 拍板)
     if r.get("t1_pending"):
         p = r["t1_pending"]
         lines.append("## 八、T1 待拍板看板")
@@ -307,7 +321,7 @@ def render_md(r: dict) -> str:
                 f"| {it['id']} | {it['title']} | {it['blocked_days']} | {it['material']} | {it['decision_impact']} |"
             )
         lines.append("")
-        lines.append("**T1 拍板路径建议**:先 B1(零数据迁移选项)→ 解 B2 → 决定 B3 启动周次。")
+        lines.append("**T1 拍板路径建议**:B4(轻量,可先拍,仅需 `mavis cron update`)→ B1(数据迁移决策,最重)→ 解 B2 → 决定 B3 启动周次。")
         lines.append("")
     return "\n".join(lines)
 
