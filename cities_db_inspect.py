@@ -201,6 +201,57 @@ def inspect(db_path: Path) -> dict:
         ],
     }
 
+    # 9) T1 决策点总览(v3.2: 2026-09-08 快照,覆盖累计 5 项 T1 决策点)
+    #    与 §8 阻塞项看板(B1-B4)互补:§8 看"阻塞项",§9 看"决策点"(含 §8 未覆盖的决策点 2/5)
+    #    0908 巡检第 3 项原文:"T1 决策点累计未动作 5 项",§8 v3.1 只覆盖 B1-B4 阻塞项
+    #    T4 不能替 T1 拍板,但能"把 T1 决策点全貌备齐"——一表看完 5 项 + 备齐材料 + 解锁后立即可做
+    report["t1_decisions"] = {
+        "snapshot_date": "2026-09-08",
+        "total_decisions": 5,
+        "items": [
+            {
+                "id": "D1",
+                "title": "B4 weekly 模式切换(0831 承诺 · 0908 23:59 最后一次软截止线)",
+                "blocked_days": 8,
+                "material": ".Log/巡检-地理-20260831.md §四 + mavis cron update",
+                "decision_impact": "决定 0909-0915 daily/weekly 巡检节奏(0908 23:59 软截止线已过 + 0907 延期窗口 + 0908 daily 跑出 = 双失效)",
+                "unblock_action": "T1 跑 1 条 `mavis cron update` 即可(决策点 1 唯一一条命令)",
+            },
+            {
+                "id": "D2",
+                "title": "untracked `地理顾问开发架构与计划.md` 入库方式(0902 起草 · 0908 第 6 日 untracked)",
+                "blocked_days": 6,
+                "material": "主计划 §4 + 巡检第二节「二、文件状态摘要」+ 起草文件 540 行/19425 bytes",
+                "decision_impact": "决定产品架构草稿是否入主分支(并入主计划 / 替换主计划 / 补充为主计划 §附录 / 作废 / 维持 untracked)",
+                "unblock_action": "T1 决定后 T4 按 `git mv` / `git rm` / `git add` 中 1 条命令即可",
+            },
+            {
+                "id": "D3",
+                "title": "B1 Schema A/B/C 决策(主计划 §4.3 vs 实际 entity 四表 · 0908 第 16 日)",
+                "blocked_days": 16,
+                "material": "docs/Phase0_2_Schema_决策表.md(A=零数据迁移 / B=兼容迁移 / C=重整,推荐 A)",
+                "decision_impact": "决定 Phase 0.2 批量入库 SQL 模板(决策点 4 的解锁条件)",
+                "unblock_action": "T1 选定 A/B/C 后 T4 跑通 1 城市铜陵(340700)端到端 desc_short 灌入(决策表 §五 checklist 第 3-4 项)",
+            },
+            {
+                "id": "D4",
+                "title": "B2/B3 Phase 0.2 启动 + Web App 启动时点(0908 第 15 日)",
+                "blocked_days": 15,
+                "material": "决策表 §五 checklist + Phase 0 矩阵(this 脚本 §七)",
+                "decision_impact": "决定 Phase 0.2 启动日 + Phase 1 启动周次 + FastAPI/React 引入时点(4 个预期目录 + 4 个预期文件待创建)",
+                "unblock_action": "T1 给启动周次后 T4 引 FastAPI 写 requirements.txt 起骨架(决策点 3 解锁后立即可做)",
+            },
+            {
+                "id": "D5",
+                "title": "untracked `MapStage.zip` 入库方式/用途判定(0907 11:08 新增 · 0908 第 1 日 untracked · 12.9 MB)",
+                "blocked_days": 1,
+                "material": "巡检第二节「二、文件状态摘要」+ 工作区 dirty 升级(0907 的 1 → 0908 的 2)",
+                "decision_impact": "决定 12.9 MB 是否入主分支(可能离线地图包 / 静态资源 / Phase 0.2 素材 / 临时草稿)+ .gitignore 扩边界(当前 50 bytes)+ LFS 评估",
+                "unblock_action": "T1 判定内容 + 用途后 T4 同步 .gitignore / `git add` / `git rm` 中 1 条命令即可",
+            },
+        ],
+    }
+
     con.close()
     return report
 
@@ -322,6 +373,25 @@ def render_md(r: dict) -> str:
             )
         lines.append("")
         lines.append("**T1 拍板路径建议**:B4(轻量,可先拍,仅需 `mavis cron update`)→ B1(数据迁移决策,最重)→ 解 B2 → 决定 B3 启动周次。")
+        lines.append("")
+
+    # T1 决策点总览(v3.2: 2026-09-08 快照,覆盖累计 5 项 T1 决策点,与 §8 阻塞项看板互补)
+    if r.get("t1_decisions"):
+        d = r["t1_decisions"]
+        lines.append("## 九、T1 决策点总览(累计未动作)")
+        lines.append("")
+        lines.append(f"> **快照日期**:`{d['snapshot_date']}` · **累计决策点**:`{d['total_decisions']}` 项")
+        lines.append("> 与 §八 阻塞项看板口径互补:§八 看「阻塞项 B1-B4」 · §九 看「决策点 D1-D5」(含 §八 未覆盖的 D2 草稿入库 + D5 MapStage.zip)")
+        lines.append("> T4 边界:备数据不替 T1 拍板 · 拍板后 T4 立即按「解锁后立即可做」列执行")
+        lines.append("")
+        lines.append("| ID | 决策点 | 持续日数 | 备齐材料 | 决策影响 | 解锁后立即可做 |")
+        lines.append("|---|---|---|---|---|---|")
+        for it in d["items"]:
+            lines.append(
+                f"| {it['id']} | {it['title']} | {it['blocked_days']} | {it['material']} | {it['decision_impact']} | {it['unblock_action']} |"
+            )
+        lines.append("")
+        lines.append("**T1 拍板路径建议(轻量优先)**:D1(1 条 cron 命令)→ D2(1 个 git 操作)→ D5(查 MapStage.zip 内容 + 用途)→ D3(数据迁移决策,最重)→ 解锁 D4。")
         lines.append("")
     return "\n".join(lines)
 
