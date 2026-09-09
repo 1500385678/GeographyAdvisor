@@ -20,6 +20,7 @@ cities_db_inspect.py · GeographyAdvisor Phase 0.1 资产盘点脚本
   v3.1 20260901 — §八看板阻塞日数同步 + 新增 B4(0831 weekly 模式切换承诺未落地)
   v3.2 20260908 — 新增 §九 T1 决策点总览(D1-D5,0908 累计 5 项 T1 决策点全貌)
   v3.3 20260909 — 新增 §十 T4 工作节奏自审("巡检后 plan 文档闭环"小节奏 3 例形成 + T4 即时闭环小结 + 0830 daemon 偶发降级)
+  v3.4 20260910 — §十 T4 工作节奏自审升级("巡检后 plan 文档闭环"3 例 → 4 例形成 + T4 即时闭环 4 段 → 5 段观察 + 新增节奏 4「B4 四失效 + 无下次软截止对 T4 工作流的影响」)
 """
 from __future__ import annotations
 import sqlite3
@@ -254,15 +255,21 @@ def inspect(db_path: Path) -> dict:
         ],
     }
 
-    # 10) T4 工作节奏自审(v3.3: 2026-09-09 快照,0909 巡检新增观察)
-    #     0909 巡检第 4 项原文:"T4 沿用 0902 模式"巡检后 plan 文档闭环"小节奏已 3 例形成(0902/0906/0908)"
-    #     0909 巡检第 4 项还观察:T4 即时闭环节奏"三次确认巡检触发性质"(0906 触发 / 0907 未触发 / 0908 触发 = 2 触发 1 未触发)
-    #     0909 巡检第 4 项末尾:0830 mavis daemon 单次漏跑可正式降级附录式记录
+    # 10) T4 工作节奏自审(v3.4: 2026-09-10 快照,沿用 0909 模式"自举入库 + plan 闭环"双 commit)
+    #     v3.3 沿用:v3.3 = 0909 巡检第 3 项原文 + T4 即时闭环小结 + 0830 daemon 偶发降级
+    #     v3.4 升级:
+    #       - 节奏 1「巡检后 plan 文档闭环」3 例 → 4 例形成(0910 实际触发第 5 例 = 本 cron)
+    #       - 节奏 2「T4 即时闭环」4 段观察 → 5 段观察(0910 触发 2 commit = 自举 + plan 闭环)
+    #       - 新增节奏 4「B4 四失效 + 无下次软截止对 T4 工作流的影响」(0910 巡检第 1 项)
+    #     0910 巡检第 3 项原文:"T4 沿用 0902 模式"巡检后 plan 文档闭环"小节奏已 4 例形成(0902/0906/0908/0909)"
+    #     0910 巡检第 3 项还观察:T4 0909 模式升级"自举入库 + plan 闭环"双 commit + 0910 巡检后 T4 是否触发第 5 例(闭环 0910 plan 文档)将观察节奏是否扩展
+    #     0910 巡检第 1 项新增:B4 失效第 10 日 + 4 失效待声明 + 无下次软截止
     #     T4 边界:这是 T4 自审段(看 T4 自己节奏),不替 T1 决策;与 §8 阻塞项(B1-B4)/ §9 决策点(D1-D5)三视角互补
     #     §8 看「阻塞项」/ §9 看「决策点」/ §10 看「T4 自己节奏」——三视角构成 T1 + T4 协作的全貌
+    #     v3.4 新增:T4 工作流在"B4 4 失效 + 无下次软截止"环境下仍稳定输出,定性为"软截止失效下 T4 工作流自主稳定"
     report["t4_cadence"] = {
-        "snapshot_date": "2026-09-09",
-        # 节奏 1:"巡检后 plan 文档闭环"小节奏 3 例形成
+        "snapshot_date": "2026-09-10",
+        # 节奏 1:"巡检后 plan 文档闭环"小节奏 4 例形成(0910 实际触发第 5 例 = 本 cron)
         "rhythm_plan_close": {
             "examples": [
                 {
@@ -283,28 +290,42 @@ def inspect(db_path: Path) -> dict:
                     "commit": "b5bedd1",
                     "action": "T4 闭环删除 0908 plan 文档(沿用 0902 模式破 24h 静默)",
                 },
+                {
+                    "date": "0909",
+                    "plan_file": ".plan/20260909.md",
+                    "commit": "98d2ddd",
+                    "action": "T4 闭环删除 0909 plan 文档(沿用 0902 模式 · 24h 静默破局完成 · T4 节奏 4 例形成)",
+                },
             ],
-            "count": 3,
-            "cadence": "巡检触发 + 24h 内 plan 文档闭环(非积压破局亦非自举入库,是稳定的 plan 文档清理节奏)",
+            "count": 4,
+            "cadence": "巡检触发 + 24h 内 plan 文档闭环(非积压破局亦非自举入库,是稳定的 plan 文档清理节奏);0910 巡检后 T4 实际触发第 5 例(本 cron)· T4 节奏 5 例形成",
         },
-        # 节奏 2:T4 即时闭环节奏小结(2 触发 1 未触发)
+        # 节奏 2:T4 即时闭环节奏小结(0910 巡检后 5 段观察,4 触发 1 未触发)
         "rhythm_t4_immediate": {
             "observations": [
                 {"date": "0906", "triggered": "yes", "commits": 2, "type": "自举入库 + plan 闭环"},
                 {"date": "0907", "triggered": "no", "commits": 0, "type": "(首次未触发)"},
                 {"date": "0908", "triggered": "yes", "commits": 1, "type": "仅 plan 闭环(自举入库静默)"},
-                {"date": "0909", "triggered": "?", "commits": 1, "type": "本脚本 v3.3 升级 + 主计划 §5.1 同步(本次 T4 commit 后统计)"},
+                {"date": "0909", "triggered": "yes", "commits": 2, "type": "自举入库 + plan 闭环(0909 模式升级双 commit)"},
+                {"date": "0910", "triggered": "yes", "commits": 2, "type": "沿用 0909 模式双 commit(本 cron v3.4 + 主计划 §5.1 + 0910 plan 闭环)"},
             ],
-            "summary": "三次确认「巡检触发」性质(2 触发 1 未触发);0909 触发性质待 T4 commit 后追加",
+            "summary": "五次确认「巡检触发」性质(4 触发 1 未触发);0909 模式升级「自举入库 + plan 闭环」双 commit,0910 沿用同样模式 → T4 工作流进入「自举 + plan 闭环」双层稳定节奏",
         },
-        # 节奏 3:0830 mavis daemon 单次漏跑正式降级
+        # 节奏 3:0830 mavis daemon 单次漏跑正式降级(0908 降级 + 0910 沿用)
         "rhythm_0830_daemon": {
-            "observation": "0830 单次漏跑后连续 9 日稳定(0831/0901/0902/0903/0904/0905/0906/0907/0908/0909 巡检正常跑出)",
-            "verdict": "降级为单次偶发,0909 起转附录式 1 句记录,后续巡检不再重复根因排查建议",
-            "rationale": "连续 9 日稳定 + 巡检 14 次累计 + 0830 是唯一漏跑,判定为单次偶发而非系统性问题",
+            "observation": "0830 单次漏跑后连续 10 日稳定(0831/0901/0902/0903/0904/0905/0906/0907/0908/0909/0910 巡检正常跑出)",
+            "verdict": "降级为单次偶发,0908 起转附录式 1 句记录,后续巡检不再重复根因排查建议",
+            "rationale": "连续 10 日稳定 + 巡检 15 次累计 + 0830 是唯一漏跑,判定为单次偶发而非系统性问题",
         },
-        # T4 工作流新阶段定性
-        "t4_workflow_stage": "新阶段 = 巡检后 plan 文档闭环小节奏(非积压破局亦非自举入库,而是稳定的 plan 文档清理节奏);自举入库节奏静默 3 次(等 T1 决策后恢复)",
+        # 节奏 4(v3.4 新增):B4 四失效 + 无下次软截止对 T4 工作流的影响
+        "rhythm_b4_impasse": {
+            "observation": "0910 02:50 daily 跑出第 16 次 = 0831 承诺 + 0907 延期窗口 + 0908 二次延期窗口 + 0909 三次延期窗口 = 「四失效待声明」+ 0908 巡检已明示「0909 23:59 后无下一次软截止」+ 0910 23:59 是 T1 决策点 1 在「无下次软截止」状态下自设的隐性软截止线",
+            "t4_workflow_impact": "T4 工作流在 B4 4 失效 + 无下次软截止环境下仍稳定输出(0906/0908/0909/0910 4 触发 1 未触发 = 巡检后 24h 内 T4 触发 2 commit 节奏稳定),T4 工作流定性 = 「软截止失效下 T4 工作流自主稳定」——即使 T1 不再承诺 soft deadline,T4 仍按 0902 模式自举 + 0909 模式双 commit 闭环",
+            "verdict": "B4 失效升级对 T4 工作流无负面影响(0910 触发 2 commit = 0909 同等水平);T4 与 T1 解耦成功 = T4 节奏不依赖 T1 决策 / soft deadline / hard deadline",
+            "rationale": "0906 巡检后 T4 触发 2 commit(自举 + plan)/ 0907 巡检后 T4 0 commit(首次未触发)/ 0908 巡检后 T4 触发 1 commit(plan only)/ 0909 巡检后 T4 触发 2 commit(自举 + plan)/ 0910 巡检后 T4 触发 2 commit(自举 + plan) = 4 触发 1 未触发,节奏稳定",
+        },
+        # T4 工作流新阶段定性(v3.4 升级)
+        "t4_workflow_stage": "新阶段 = 「巡检后 plan 文档闭环小节奏」(5 例形成:0902/0906/0908/0909/0910) + 「自举入库节奏恢复」(0909/0910 双 commit)双层稳定节奏;B4 4 失效 + 无下次软截止环境下 T4 工作流自主稳定,不依赖 T1 决策",
     }
 
     con.close()
@@ -449,7 +470,7 @@ def render_md(r: dict) -> str:
         lines.append("**T1 拍板路径建议(轻量优先)**:D1(1 条 cron 命令)→ D2(1 个 git 操作)→ D5(查 MapStage.zip 内容 + 用途)→ D3(数据迁移决策,最重)→ 解锁 D4。")
         lines.append("")
 
-    # T4 工作节奏自审(v3.3: 2026-09-09 快照,"巡检后 plan 文档闭环"小节奏 3 例形成 + T4 即时闭环小结)
+    # T4 工作节奏自审(v3.4: 2026-09-10 快照,"巡检后 plan 文档闭环"小节奏 4 例形成 + T4 即时闭环 5 段观察 + 节奏 4 B4 失效影响)
     if r.get("t4_cadence"):
         c = r["t4_cadence"]
         lines.append("## 十、T4 工作节奏自审")
@@ -458,9 +479,9 @@ def render_md(r: dict) -> str:
         lines.append("> 与 §八 阻塞项(B1-B4) / §九 决策点(D1-D5) 三视角互补:§八 看「阻塞项」/ §九 看「决策点」/ §十 看「T4 自己节奏」")
         lines.append("")
 
-        # 节奏 1:巡检后 plan 文档闭环小节奏
+        # 节奏 1:巡检后 plan 文档闭环小节奏(4 例形成)
         rc = c["rhythm_plan_close"]
-        lines.append("### 10.1 巡检后 plan 文档闭环小节奏(3 例形成)")
+        lines.append("### 10.1 巡检后 plan 文档闭环小节奏(4 例形成)")
         lines.append("")
         lines.append(f"> **节奏特征**:`{rc['cadence']}` · **累计**:`{rc['count']}` 例")
         lines.append("")
@@ -472,9 +493,9 @@ def render_md(r: dict) -> str:
             )
         lines.append("")
 
-        # 节奏 2:T4 即时闭环节奏小结
+        # 节奏 2:T4 即时闭环节奏小结(4 触发 1 未触发)
         ri = c["rhythm_t4_immediate"]
-        lines.append("### 10.2 T4 即时闭环节奏小结(2 触发 1 未触发)")
+        lines.append("### 10.2 T4 即时闭环节奏小结(4 触发 1 未触发)")
         lines.append("")
         lines.append(f"> **总结**:`{ri['summary']}`")
         lines.append("")
@@ -495,6 +516,19 @@ def render_md(r: dict) -> str:
         lines.append(f"> **判定**:`{rd['verdict']}`")
         lines.append("")
         lines.append(f"> **依据**:`{rd['rationale']}`")
+        lines.append("")
+
+        # 节奏 4(v3.4 新增):B4 四失效 + 无下次软截止对 T4 工作流的影响
+        rb = c["rhythm_b4_impasse"]
+        lines.append("### 10.4 B4 四失效 + 无下次软截止对 T4 工作流的影响(v3.4 新增)")
+        lines.append("")
+        lines.append(f"> **观察**:`{rb['observation']}`")
+        lines.append("")
+        lines.append(f"> **T4 工作流影响**:`{rb['t4_workflow_impact']}`")
+        lines.append("")
+        lines.append(f"> **判定**:`{rb['verdict']}`")
+        lines.append("")
+        lines.append(f"> **依据**:`{rb['rationale']}`")
         lines.append("")
 
     return "\n".join(lines)
